@@ -33,6 +33,28 @@ class CropDialog(QDialog):
         except ValueError:
             return None
 
+class BlurDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Введите размер ядра для усреднения')
+        self.kernel_width = QLineEdit()
+        self.kernel_height = QLineEdit()
+        layout = QFormLayout()
+        layout.addRow('Ширина ядра:', self.kernel_width)
+        layout.addRow('Высота ядра:', self.kernel_height)
+        ok_button = QPushButton('ОК')
+        ok_button.clicked.connect(self.accept)
+        layout.addWidget(ok_button)
+        self.setLayout(layout)
+
+    def get_values(self):
+        try:
+            width = int(self.kernel_width.text())
+            height = int(self.kernel_height.text())
+            return width, height
+        except ValueError:
+            return None
+
 class ImageApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -46,17 +68,20 @@ class ImageApp(QMainWindow):
         self.load_button = QPushButton('Загрузить изображение', self)
         self.camera_button = QPushButton('Сделать снимок с веб-камеры', self)
         self.crop_button = QPushButton('Обрезать изображение', self)
+        self.blur_button = QPushButton('Усреднить изображение', self)
         self.channel_combo = QComboBox(self)
         self.channel_combo.addItems(['Оригинал', 'Красный канал', 'Зеленый канал', 'Синий канал'])
         self.channel_combo.setStyleSheet("QComboBox { text-align: center; }")
         self.load_button.setStyleSheet("QPushButton { text-align: center; }")
         self.camera_button.setStyleSheet("QPushButton { text-align: center; }")
         self.crop_button.setStyleSheet("QPushButton { text-align: center; }")
+        self.blur_button.setStyleSheet("QPushButton { text-align: center; }")
         layout = QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.load_button)
         layout.addWidget(self.camera_button)
         layout.addWidget(self.crop_button)
+        layout.addWidget(self.blur_button)
         layout.addWidget(self.channel_combo)
         layout.setAlignment(Qt.AlignCenter)
         container = QWidget()
@@ -65,6 +90,7 @@ class ImageApp(QMainWindow):
         self.load_button.clicked.connect(self.load_image)
         self.camera_button.clicked.connect(self.capture_from_camera)
         self.crop_button.clicked.connect(self.crop_image)
+        self.blur_button.clicked.connect(self.blur_image)
         self.channel_combo.currentIndexChanged.connect(self.display_channel)
 
     def load_image(self):
@@ -115,6 +141,34 @@ class ImageApp(QMainWindow):
                 QMessageBox.warning(self, "Ошибка", "Обрезанное изображение пустое. Проверьте координаты и размеры")
                 return
             self.image = cropped_image
+            current_channel = self.channel_combo.currentIndex()
+            self.display_channel(current_channel)
+
+    def blur_image(self):
+        if self.image is None:
+            QMessageBox.warning(self, "Ошибка", "Сначала загрузите изображение")
+            return
+        dialog = BlurDialog(self)
+        if dialog.exec_():
+            values = dialog.get_values()
+            if values is None:
+                QMessageBox.warning(self, "Ошибка", "Введите корректные числовые значения")
+                return
+            width, height = values
+            if width <= 0 or height <= 0:
+                QMessageBox.warning(self, "Ошибка", "Размеры ядра должны быть положительными")
+                return
+            if width % 2 == 0 or height % 2 == 0:
+                QMessageBox.warning(self, "Ошибка", "Размеры ядра должны быть нечётными")
+                return
+            if width > self.image.shape[1] or height > self.image.shape[0]:
+                QMessageBox.warning(self, "Ошибка", "Размеры ядра превышают размеры изображения")
+                return
+            blurred_image = cv2.blur(self.image, (width, height))
+            if blurred_image is None or blurred_image.size == 0:
+                QMessageBox.warning(self, "Ошибка", "Не удалось применить усреднение")
+                return
+            self.image = blurred_image
             current_channel = self.channel_combo.currentIndex()
             self.display_channel(current_channel)
 
