@@ -1,0 +1,9 @@
+# Указываем, что .gitattributes использует LF
+   .gitattributes text eol=lf
+
+   # Указываем, что .sh файлы должны использовать LF
+   *.sh text eol=lf
+
+   # Остальные файлы (например, .py, .bat) могут использовать CRLF на Windows
+   *.py text eol=crlf
+   *.bat text eol=crlf

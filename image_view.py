@@ -1,9 +1,19 @@
 import sys
+import os
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QComboBox, QVBoxLayout, QWidget, QDialog, QLineEdit, QFormLayout, QMessageBox
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import Qt
 import cv2
 import numpy as np
+
+#Установка QT_PLUGIN_PATH для переносимости
+if not os.environ.get("QT_PLUGIN_PATH"):
+    base_path = os.path.join(os.path.dirname(sys.executable), "Lib", "site-packages", "PyQt5")
+    for qt_dir in ["Qt5/plugins", "Qt/plugins"]:
+        plugin_path = os.path.join(base_path, qt_dir)
+        if os.path.exists(plugin_path):
+            os.environ["QT_PLUGIN_PATH"] = plugin_path
+            break
 
 class CropDialog(QDialog):
     def __init__(self, parent=None):
@@ -132,7 +142,7 @@ class ImageApp(QMainWindow):
 
     def load_image(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Images (*.png *.jpg)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Выбрать изображение", "", "Images (*.png *.jpg)", options=options)
 
         if file_name:
             self.image = cv2.imread(file_name)
